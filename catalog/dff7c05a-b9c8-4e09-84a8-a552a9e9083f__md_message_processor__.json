@@ -1,0 +1,16 @@
+{
+    "inputMessageMetadata": {
+        "messagePayload": {
+            "connectorName": "#_custom_mule_metadata_type_#",
+            "typeId": "Auth_X1_XML"
+        }
+    },
+    "outputMessageMetadata": {
+        "messagePayload": {
+            "connectorName": "#_custom_mule_metadata_type_#",
+            "typeId": "Authorization_JSON_request"
+        }
+    },
+    "id": "dff7c05a-b9c8-4e09-84a8-a552a9e9083f",
+    "version": "5.2.0.0"
+}

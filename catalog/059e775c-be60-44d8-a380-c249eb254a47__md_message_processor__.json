@@ -1,0 +1,16 @@
+{
+    "inputMessageMetadata": {
+        "messagePayload": {
+            "connectorName": "#_custom_mule_metadata_type_#",
+            "typeId": "JSON_Return"
+        }
+    },
+    "outputMessageMetadata": {
+        "messagePayload": {
+            "connectorName": "#_custom_mule_metadata_type_#",
+            "typeId": "EAA-XML-response2"
+        }
+    },
+    "id": "059e775c-be60-44d8-a380-c249eb254a47",
+    "version": "5.2.0.0"
+}

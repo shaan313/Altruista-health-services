@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+ 
+<mule xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+       xmlns:spring="http://www.springframework.org/schema/beans" 
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
+    <catch-exception-strategy name="http-request-error-handler">
+        <dw:transform-message doc:name="Transform Message" metadata:id="ad68a982-ec08-4a81-bcbb-6a6669ff3e79">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+payload]]></dw:set-payload>
+            <dw:set-property propertyName="http.status"><![CDATA[%dw 1.0
+%output application/java
+---
+inboundProperties['http.status']]]></dw:set-property>
+        </dw:transform-message>
+        <choice doc:name="Choice">
+            <when expression="#[sessionVars.inboundURI.contains(&quot;EAA&quot;)]">
+                <logger message="beforecalling EAA tranform - #[payload]" level="INFO" doc:name="Logger1"/>
+                <message-properties-transformer doc:name="Message Properties">
+                    <add-message-property key="Content-Type" value="application/xml"/>
+                </message-properties-transformer>
+                <dw:transform-message doc:name="Transform Message" metadata:id="a94f7e3b-5c27-422f-8cd3-19813c8727c1">
+                    <dw:input-payload mimeType="application/json"/>
+                    <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml
+%namespace ns0 http://schemas.xmlsoap.org/soap/envelope/
+%namespace ns1 urn:eaarsp.mule.services.hcsc.com
+---
+{
+	ns0#Envelope: {
+		ns0#Body: {
+			ns1#EAAResponse: {
+				ns1#message: payload.message,
+				ns1#statusCode: 400
+			}
+		}
+	}
+}]]></dw:set-payload>
+                </dw:transform-message>
+            </when>
+            <otherwise>
+                <logger message="Default Error" level="INFO" doc:name="Logger2"/>
+            </otherwise>
+        </choice>
+    </catch-exception-strategy>
+</mule>

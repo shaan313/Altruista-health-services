@@ -1,0 +1,119 @@
+#%RAML 0.8
+title: AHS-SmartUM-API
+version: v1
+baseUri: https://apm-lax3.guidingcare.com/GuidingCareApi/v1
+
+  
+
+/Authorization:  
+  post:
+      description: Authorization_authorization
+      body: 
+        application/xml:
+          example: !include AuthRequest-example1.xml
+      responses: 
+        200:
+          description: OK              
+        400:
+          description: Request Failed
+                  
+          
+/CareTeam/{id}:  
+    uriParameters:
+      id:
+       description: id
+       required: true
+    get:
+      description: Care Team
+      
+      responses:
+        200:
+          description: OK
+          body:
+            application/json:
+                                                            
+        400: 
+          description: Request Failed
+          body: 
+            application/json: 
+             
+/ServicePlan/{id}: 
+    uriParameters:
+      id:
+       description: id
+       required: true
+    get:
+      description: Service Team
+      responses: 
+            200: 
+              description: OK
+              body: 
+                  application/json: 
+                      
+            400: 
+               description: Request Failed
+               body: 
+                   application/json: 
+                  
+/EAA:
+  post:
+    description: Enterprise Appeal Application
+    body: 
+      application/xml:
+      
+                      
+/SmartUMReferral:
+  post:
+    body: 
+      application/json:
+        example: |
+          {
+            "memberId": 12345678910,
+            "activities": [
+              {
+                "type": "Scheduled",
+                "activityType": "UM Referral - BH/ UM Referral - PH",
+                "priority": "High",
+                "contactType": "Member Review",
+                "assignTo": "CAREMANAGER ",
+                "scheduledInDays": 0,
+                "scheduledHours": "00",
+                "scheduledMins": "00",
+                "dueDate": "2017-09-28T11:43:12.811Z",
+                "scriptName": "",
+                "comments": "Note Goes Here",
+                "isWorkQueue": false,
+                "workQueues": [],
+                "createdOn": "2017-09-28T11:43:12.811Z",
+                "activityStatus": "Accepted",      
+               "scheduledDate":"2017-09-28T11:43:12.811Z "    
+              }
+            ]
+          }
+    responses: 
+      201:
+        body: 
+          application/json:
+            example: |
+              {"message":"Activity/Activities created for member :1231412"}
+      404:
+        body: 
+          application/json:
+            example: |
+              {"message":"member not found"}
+      400:
+        body: 
+          application/json:
+            example: |
+              {"message": "member not found"}
+      500:
+        body: 
+          application/json:
+            example: |
+                {"message": "Unexpected Error"}
+                
+
+
+    
+
+    

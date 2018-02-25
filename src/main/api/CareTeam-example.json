@@ -1,0 +1,44 @@
+{
+                "clientPatientId": "string",
+                "contactResources": [
+                  {
+                    "address": {
+                      "address": "string",
+                      "address2": "string",
+                      "city": "string",
+                      "country": "string",
+                      "county": "string",
+                      "postalCode": "string",
+                      "primary": "string",
+                      "stateProvince": "string"
+                    },
+                    "alternateEmail": "string",
+                    "alternatePhoneNumber": "string",
+                    "company": "string",
+                    "contactType": "string",
+                    "daytimePhoneNumber": "string",
+                    "description": "string",
+                    "directEmail": "string",
+                    "dob": "string",
+                    "ethnicities": [
+                      "string"
+                    ],
+                    "eveningPhoneNumber": "string",
+                    "faxNumber": "string",
+                    "firstName": "string",
+                    "gender": "string",
+                    "lastName": "string",
+                    "maritalStatus": "string",
+                    "middleName": "string",
+                    "mobilePhoneNumber": "string",
+                    "nameSuffix": "string",
+                    "phoneNumber": "string",
+                    "preferredTimeOfContact": "string",
+                    "primaryEmail": "string",
+                    "primaryLanguage": "string",
+                    "relationshipToMember": "string",
+                    "salutation": "string",
+                    "timeZone": "string"
+                    }
+                  ]
+                }

@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<AuthorizationData>
+  <vendorInformation>
+    <vendorName>????</vendorName>
+    <vendorId>????</vendorId>
+    <dataSource>????</dataSource>
+  </vendorInformation>
+  <fileInformation>
+    <fileID>????</fileID>
+    <fileDate>2003-10-01</fileDate>
+    <fileDescription>????</fileDescription>
+    <name>????</name>
+    <recordCount>1</recordCount>
+  </fileInformation>
+  <authorizationList>
+    <Authorization/>
+  </authorizationList>
+</AuthorizationData>

@@ -1,0 +1,302 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:api-platform-gw="http://www.mulesoft.org/schema/mule/api-platform-gw" xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:context="http://www.springframework.org/schema/context" xmlns:tls="http://www.mulesoft.org/schema/mule/tls" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/apikit" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/api-platform-gw http://www.mulesoft.org/schema/mule/api-platform-gw/current/mule-api-platform-gw.xsd
+http://www.mulesoft.org/schema/mule/apikit http://www.mulesoft.org/schema/mule/apikit/current/mule-apikit.xsd
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd
+http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-current.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+
+    <apikit:config name="Altruista-config" raml="Altruista.raml" consoleEnabled="false" doc:name="Router"/>
+    <http:request-config name="HTTP_Request_Configuration" protocol="HTTPS" host="${altruista.host}" port="${altruista.port}" doc:name="HTTP Request Configuration" responseTimeout="100000">
+        <tls:context>
+            <tls:trust-store path="${truststore.path}" password="${truststore.pass}" type="jks" insecure="true"/>
+        </tls:context>
+    </http:request-config>
+    <context:property-placeholder location="config.${mule.env}.properties"/>
+    <api-platform-gw:api apiName="altruista-health-systems-api" version="${api.version}" flowRef="Altruista-main" create="true" apikitRef="Altruista-config" doc:name="API Autodiscovery"/>
+    <flow name="Altruista-main">
+        <http:listener config-ref="https-lc-0.0.0.0-8082" path="/medicaid/services/altruista/v1/*" doc:name="HTTPS"/>
+        <set-session-variable variableName="inboundPayload" value="#[payload]" doc:name="Session Variable"/>
+        <set-session-variable variableName="inboundURI" value="#[message.inboundProperties.'http.request.uri']" doc:name="Session Variable"/>
+        <set-payload value="#[null]" doc:name="Set Payload"/>
+        <logger message="Should be a null Payload: #[payload]" level="INFO" doc:name="Logger"/>
+
+        <enricher source="#[payload]" target="#[flowVars.Authorization]" doc:name="Message Enricher">
+            <processor-chain doc:name="Processor Chain">
+                <http:request config-ref="HTTP_Request_Configuration" path="/token" method="POST" doc:name="HTTP">
+                    <http:request-builder>
+                        <http:query-param paramName="grant_type" value="client_credentials"/>
+                        <http:header headerName="Authorization" value="${authorization.key}"/>
+                        <http:header headerName="Host" value="${altruista.host}"/>
+                        <http:header headerName="Accept" value="application/json"/>
+                        <http:header headerName="Content-Type" value="application/x-www-form-urlencoded"/>
+                    </http:request-builder>
+                </http:request>
+                <json:json-to-object-transformer returnClass="java.util.Map" doc:name="JSON to Object"/>
+                <set-payload value="#['Bearer ' + payload.access_token]" doc:name="Set Payload"/>
+            </processor-chain>
+        </enricher>
+        <logger message="MyToken10: #[flowVars.Authorization]" level="INFO" doc:name="Logger"/>
+
+        <apikit:router config-ref="Altruista-config" doc:name="APIkit Router"/>
+        <exception-strategy ref="http-request-error-handler" doc:name="Reference Exception Strategy"/>
+    </flow>
+
+    <flow name="get:/CareTeam/{id}:Altruista-config">
+        <set-payload value="#[sessionVars.inboundPayload]" doc:name="Set Payload"/>
+        <logger message="Before CareTeam   .....  #[payload]   #[message.inboundProperties['http.uri.params']]" level="INFO" doc:name="Logger"/>
+        <http:request config-ref="HTTP_Request_Configuration" path="${altruista.path}/CareTeam/#[message.inboundProperties.'http.uri.params'.id]" method="GET" doc:name="HTTPS">
+            <http:request-builder>
+                <http:query-params expression="#[message.inboundProperties['http.query.params']]"/>
+                <http:header headerName="Authorization" value="#[flowVars.Authorization]"/>
+                <http:header headerName="Host" value="${altruista.host}"/>
+            </http:request-builder>
+        </http:request>
+        <copy-properties propertyName="http.status" doc:name="Property"/>
+        <exception-strategy ref="http-request-error-handler" doc:name="Reference Exception Strategy"/>
+
+    </flow>
+    <flow name="get:/ServicePlan/{id}:Altruista-config">
+        <set-payload value="#[sessionVars.inboundPayload]" doc:name="Set Payload"/>
+        <logger message="Before ServicePlan #[payload],  #[message.inboundProperties['http.uri.params']]" level="INFO" doc:name="Logger"/>
+        <http:request config-ref="HTTP_Request_Configuration" path="${altruista.path}/ServicePlan/#[message.inboundProperties.'http.uri.params'.id]" method="GET" doc:name="HTTPS">
+            <http:request-builder>
+                <http:query-params expression="#[message.inboundProperties['http.query.params']]"/>
+                <http:header headerName="Authorization" value="#[flowVars.Authorization]"/>
+                <http:header headerName="Host" value="${altruista.host}"/>
+            </http:request-builder>
+        </http:request>
+        <copy-properties propertyName="http.status" doc:name="Property"/>
+        <exception-strategy ref="http-request-error-handler" doc:name="Reference Exception Strategy"/>
+
+    </flow>
+    <flow name="post:/SmartUMReferral:Altruista-config">
+        <set-payload value="#[sessionVars.inboundPayload]" doc:name="Set Payload"/>
+        <logger message="My First Payload: #[payload], #[flowVars.Authorization]" level="INFO" doc:name="Logger"/>
+        <http:request config-ref="HTTP_Request_Configuration" path="${altruista.path}/Referrals" method="POST" doc:name="HTTPS">
+            <http:request-builder>
+                <http:query-params expression="#[message.inboundProperties['http.query.params']]"/>
+                <http:header headerName="Authorization" value="#[flowVars.Authorization]"/>
+                <http:header headerName="Host" value="${altruista.host}"/>
+                <http:header headerName="Accept" value="application/json"/>
+                <http:header headerName="Content-Type" value="application/json"/>
+            </http:request-builder>
+        </http:request>
+        <copy-properties propertyName="http.status" doc:name="Property"/>
+        <exception-strategy ref="http-request-error-handler" doc:name="Reference Exception Strategy"/>
+
+    </flow>
+    <flow name="post:/EAA:Altruista-config">
+        <set-payload value="#[sessionVars.inboundPayload]" doc:name="Set Payload" mimeType="application/xml"/>
+        <logger message="My First Payload: #[payload], #[flowVars.Authorization]" level="INFO" doc:name="Logger"/>
+        <dw:transform-message doc:name="Transform Message" metadata:id="af0440e5-0be9-480c-9cee-9e2fd3284f8d">
+            <dw:input-payload doc:sample="C:\Users\i355695\Documents\Altruista\New\EAA_SOAP_ENVP_REQUEST.xml" mimeType="application/xml"/>
+            <dw:input-variable variableName="inboundPaylaod"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+%namespace ns0 http://schemas.xmlsoap.org/soap/envelope/
+%namespace ns1 urn:eaareq.mule.services.hcsc.com
+---
+{
+	memberId: payload.ns0#Envelope.ns0#Body.ns1#EAARequest.ns1#memberId,
+	activities: [{
+		type: payload.ns0#Envelope.ns0#Body.ns1#EAARequest.ns1#activities.ns1#type,
+		activityType: payload.ns0#Envelope.ns0#Body.ns1#EAARequest.ns1#activities.ns1#activityType,
+		priority: payload.ns0#Envelope.ns0#Body.ns1#EAARequest.ns1#activities.ns1#priority,
+		contactType: payload.ns0#Envelope.ns0#Body.ns1#EAARequest.ns1#activities.ns1#contactType,
+		assignTo: payload.ns0#Envelope.ns0#Body.ns1#EAARequest.ns1#activities.ns1#assignTo,
+		scheduledInDays: payload.ns0#Envelope.ns0#Body.ns1#EAARequest.ns1#activities.ns1#scheduledInDays as :number,
+		scheduledHours: payload.ns0#Envelope.ns0#Body.ns1#EAARequest.ns1#activities.ns1#scheduledHours,
+		scheduledMins: payload.ns0#Envelope.ns0#Body.ns1#EAARequest.ns1#activities.ns1#scheduledMins,
+		scriptName: payload.ns0#Envelope.ns0#Body.ns1#EAARequest.ns1#activities.ns1#scriptName,
+		comments: payload.ns0#Envelope.ns0#Body.ns1#EAARequest.ns1#activities.ns1#comments,
+		isWorkQueue: payload.ns0#Envelope.ns0#Body.ns1#EAARequest.ns1#activities.ns1#isWorkQueue as :boolean,
+		createdOn: payload.ns0#Envelope.ns0#Body.ns1#EAARequest.ns1#activities.ns1#createdOn as :string {format: "yyyy-mm-ddTHH:MM.nnnnZ"},
+		activityStatus: payload.ns0#Envelope.ns0#Body.ns1#EAARequest.ns1#activities.ns1#activityStatus,
+		activityOutcomeType: payload.ns0#Envelope.ns0#Body.ns1#EAARequest.ns1#activities.ns1#activityOutcomeType,
+		activityOutcome: payload.ns0#Envelope.ns0#Body.ns1#EAARequest.ns1#activities.ns1#activityOutcome,
+		scheduledDate: payload.ns0#Envelope.ns0#Body.ns1#EAARequest.ns1#activities.ns1#scheduledDate as :string {format: "yyyy-mm-ddTHH:MM.nnnnZ"},
+		outcomeNotes: payload.ns0#Envelope.ns0#Body.ns1#EAARequest.ns1#activities.ns1#outcomeNotes
+	}]
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <logger message="JSON After transformation: #[message.payloadAs(java.lang.String)], #[flowVars.Authorization]" level="INFO" doc:name="Logger"/>
+
+        <http:request config-ref="HTTP_Request_Configuration" path="${altruista.path}/EAA" method="POST" doc:name="HTTPS">
+            <http:request-builder>
+                <http:query-params expression="#[message.inboundProperties['http.query.params']]"/>
+                <http:header headerName="Authorization" value="#[flowVars.Authorization]"/>
+                <http:header headerName="Host" value="${altruista.host}"/>
+                <http:header headerName="Accept" value="application/json"/>
+                <http:header headerName="Content-Type" value="application/json"/>
+
+
+            </http:request-builder>
+        </http:request>
+        <copy-properties propertyName="http.status" doc:name="Property"/>
+        <set-payload value="#[message.payload]" doc:name="Set Payload"/>
+
+        <logger message="Very Last JSON Payload: #[message.payloadAs(java.lang.String)], #[message.outboundProperties.'#status#']" level="INFO" doc:name="Logger"/>
+        <message-properties-transformer mimeType="application/xml" doc:name="Adding application/xml">
+            <add-message-property key="Content-Type" value="application/xml"/>
+
+        </message-properties-transformer>
+
+        <dw:transform-message doc:name="Transform Message" metadata:id="5d9f2733-d5e1-493f-be35-45d0c83a79b7">
+            <dw:input-payload doc:sample="C:\Users\i355695\Documents\Altruista\EAA-Example-Response.json" mimeType="application/json"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml
+%namespace ns0 http://schemas.xmlsoap.org/soap/envelope/
+%namespace ns1 urn:eaarsp.mule.services.hcsc.com
+---
+{
+	ns0#Envelope: {
+		ns0#Body: {
+			ns1#EAAResponse: {
+				ns1#message: payload.message,
+				ns1#statusCode: 201
+			}
+		}
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <logger message="Very Last XML Payload: #[message.payloadAs(java.lang.String)]" level="INFO" doc:name="Logger"/>
+        <exception-strategy ref="http-request-error-handler" doc:name="Reference Exception Strategy"/>
+
+
+    
+    </flow>
+    <flow name="post:/Authorization:Altruista-config">
+        <set-payload value="#[sessionVars.inboundPayload]" doc:name="Auth_Set Payload"/>
+
+        <dw:transform-message doc:name="Transform Message" metadata:id="dff7c05a-b9c8-4e09-84a8-a552a9e9083f">
+            <dw:input-payload doc:sample="C:\Users\i355695\Documents\Altruista\New\ARIS_1.xml" mimeType="application/xml"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+
+%var providerdata = payload.AuthorizationData.authorizationList.Authorization.providerList.*provider map {
+	($.providerTypeCode): ($)
+}
+%function getAddress(providerType) using (provider = providerdata[providerType])
+                         ((provider.address.line1 ++ provider.address.line2 ++ provider.address.city ++ 
+                         	provider.address.stateCode ++ provider.address.postalCode) joinBy " ") 
+                         when providerdata != null otherwise ""
+%function getProvider(providerType) using (provider = providerdata[providerType])
+                         (provider.providerID)[0] 
+                         when providerdata != null otherwise ""
+                         
+                                            
+                                    
+---
+{
+	admissionType: "Surgical" when (payload.AuthorizationData.authorizationList.Authorization.typeOfService == "1")
+	otherwise "Obstetrics Normal" when (payload.AuthorizationData.authorizationList.Authorization.typeOfService =="3")
+	otherwise "OB C-Section" when (payload.AuthorizationData.authorizationList.Authorization.typeOfService == "5")
+	otherwise "Medical" when (payload.AuthorizationData.authorizationList.Authorization.typeOfService == "6")
+	otherwise "Psych-Substance Abuse" when (payload.AuthorizationData.authorizationList.Authorization.typeOfService == "7")
+	otherwise "Emergency",
+	authClass: "Outpatient" when (payload.AuthorizationData.authorizationList.Authorization.treatmentSetting == "2")
+	otherwise "Inpatient",
+	lobName: "IL Medicaid",
+	authNotes: payload.AuthorizationData.authorizationList.Authorization.NoteList.*note map ((note , indexOfNote) -> {
+		authNoteType: note.noteType,
+		authNoteText: note.noteText
+	}),
+	authPriority: "Elective" when (payload.AuthorizationData.authorizationList.Authorization.treatmentUrgency == "EL")
+	otherwise "Emergency" when (payload.AuthorizationData.authorizationList.Authorization.treatmentUrgency== "EM")
+	otherwise "Urgent",
+	authReviewer: "SmartUM",
+	authServiceLines: [{
+		approvedDaysUnits: payload.AuthorizationData.authorizationList.Authorization.AuthorizationRequestStatusList.AuthorizationRequestStatus.requestRehabilitationUnits,
+		decisionReasonCode: "Default",
+		decisionStatus: "Approved" when (payload.AuthorizationData.authorizationList.Authorization.AuthorizationRequestStatusList.AuthorizationRequestStatus.requestActionCode == "1")
+		otherwise "Denied" when (payload.AuthorizationData.authorizationList.Authorization.AuthorizationRequestStatusList.AuthorizationRequestStatus.requestActionCode == "3")
+		otherwise "Pending" when (payload.AuthorizationData.authorizationList.Authorization.AuthorizationRequestStatusList.AuthorizationRequestStatus.requestActionCode == "4")
+		otherwise "Void",
+		serviceCode: {
+			codeType: "CPT" when (payload.AuthorizationData.authorizationList.Authorization.procedureCodeList.procedureCode.procedureCodeIndicator == "C")
+			otherwise "HCPCS",
+			codeCategory: "CPT" when (payload.AuthorizationData.authorizationList.Authorization.AuthorizationRequestStatusList.AuthorizationRequestStatus.procedureTypeCode == "C")
+			otherwise "HCPCS",
+			codeValue: null when (payload.AuthorizationData.authorizationList.Authorization.procedureCodeList.procedureCode.codeNumber == null) 
+			otherwise payload.AuthorizationData.authorizationList.Authorization.procedureCodeList.procedureCode.codeNumber
+		},
+		serviceFromDate: payload.AuthorizationData.authorizationList.Authorization.AuthorizationRequestStatusList.AuthorizationRequestStatus.requestBeginDate ++ "T00:00:00.000-06:00Z" as :string {format: "yyyy-mm-ddTHH:MM.nnnn"},
+		serviceToDate: payload.AuthorizationData.authorizationList.Authorization.AuthorizationRequestStatusList.AuthorizationRequestStatus.requestEndDate ++ "T00:00:00.000-06:00Z" as :string {format: "yyyy-mm-ddTHH:MM.nnnn"},
+		alternateServiceId: payload.AuthorizationData.authorizationList.Authorization.authorizationNumber ++ "_" ++ payload.AuthorizationData.authorizationList.Authorization.AuthorizationRequestStatusList.AuthorizationRequestStatus.statusSequenceNumber as :string,
+		unitType: "Days" when (payload.AuthorizationData.authorizationList.Authorization.treatmentSetting == "1")
+		otherwise "Units"
+	}],
+	authStatus: "WITHDRAWN" when (payload.AuthorizationData.authorizationList.Authorization.approvedActionCode == "6")
+		otherwise "CLOSE" when (payload.AuthorizationData.authorizationList.Authorization.approvedActionCode == "1")
+		otherwise "CANCELLED" when (payload.AuthorizationData.authorizationList.Authorization.approvedActionCode == "3") 
+		otherwise "OPEN",
+	authType: "InPatient-Acute",
+	authorizationId: payload.AuthorizationData.authorizationList.Authorization.authorizationNumber,
+	diagnosisCodes: [{
+		codeType: "ICD",
+		codeCategory: "ICD10" when ['10', '0', 'X'] contains payload.AuthorizationData.authorizationList.Authorization.diagnosisCodeList.diagnosisCode.diagnosisCodeIndicator
+		otherwise "ICD9",
+		codeValue: payload.AuthorizationData.authorizationList.Authorization.procedureCodeList.procedureCode.codeNumber
+	}],
+	createdDate: payload.AuthorizationData.authorizationList.Authorization.arisCreateTimeStamp ++ "Z" as :string {format: "yyyy-mm-ddTHH:MM.nnnn"},
+	lastUpdatedDate: payload.AuthorizationData.authorizationList.Authorization.arisLastUpdateTimeStamp ++ "Z" as :string {format: "yyyy-mm-ddTHH:MM.nnnn"},
+	memberID: payload.AuthorizationData.authorizationList.Authorization.memberNumber as :string,
+	notificationDate: payload.AuthorizationData.authorizationList.Authorization.authorizationTransmissionDate[0..9] ++ "T00:00:00.000-06:00Z" as :string {format: "yyyy-mm-ddTHH:MM.nnnn"},
+	placeOfService: "Birthing room" when (payload.AuthorizationData.authorizationList.Authorization.treatmentSetting == "7") 
+	otherwise "Emergency room" when (payload.AuthorizationData.authorizationList.Authorization.treatmentSetting == "6")
+	otherwise "Home" when (payload.AuthorizationData.authorizationList.Authorization.treatmentSetting == "4")
+	otherwise "Office" when (payload.AuthorizationData.authorizationList.Authorization.treatmentSetting == "3")
+	otherwise "Outpatient" when (payload.AuthorizationData.authorizationList.Authorization.treatmentSetting == "2")
+	otherwise "Inpatient" when (payload.AuthorizationData.authorizationList.Authorization.treatmentSetting == "1")
+	otherwise "Other",
+	treatmentType: "Diagnosis" when (payload.AuthorizationData.authorizationList.Authorization.authorizationTypeCode == "D") 
+		otherwise "Medical" when (payload.AuthorizationData.authorizationList.Authorization.authorizationTypeCode == "M") 
+		otherwise "Well Newborn" when (payload.AuthorizationData.authorizationList.Authorization.authorizationTypeCode == "N")
+		otherwise "Obstetrics" when (payload.AuthorizationData.authorizationList.Authorization.authorizationTypeCode =="O") 
+		otherwise "Rehabilitation" when (payload.AuthorizationData.authorizationList.Authorization.authorizationTypeCode == "R")
+		otherwise "Surgical" when (payload.AuthorizationData.authorizationList.Authorization.authorizationTypeCode == "S")
+		otherwise "Transplant",
+	serviceFromDate: payload.AuthorizationData.authorizationList.Authorization.serviceActualBeginDate[0..9] ++ "T00:00:00.000-06:00Z" as :string {format: "yyyy-mm-ddTHH:MM.nnnn"},
+	serviceToDate: payload.AuthorizationData.authorizationList.Authorization.serviceActualEndDate[0..9] ++ "T00:00:00.000-06:00Z"as :string {format: "yyyy-mm-ddTHH:MM.nnnn"},
+	memberNotificationDate: payload.AuthorizationData.authorizationList.Authorization.AuthorizationRequestStatusList.AuthorizationRequestStatus.notifyDate ++ "T00:00:00.000-06:00Z" as :string {format: "yyyy-mm-ddTHH:MM.nnnn"},
+	admittingProvider: {
+		providerID: getProvider('ATTENDING'),
+		address: getAddress('ATTENDING')
+	},
+	referredByProvider: {
+		providerID: getProvider('REFERRING'),
+		address: getAddress('REFERRING')
+	},
+	referredToProvider: {
+		providerID: getProvider('REFERRED'),
+		address: getAddress('REFERRED')
+	},
+	facilityProvider: {
+		providerID: getProvider('FACILITY'),
+		address: getAddress('FACILITY')
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <logger message="Auth JSON Payload #[message.payloadAs(java.lang.String)]" level="INFO" doc:name="Logger"/>
+        <http:request config-ref="HTTP_Request_Configuration" path="${altruista.path}/Authorization" method="POST" doc:name="HTTPS">
+            <http:request-builder>
+                <http:query-params expression="#[message.inboundProperties['http.query.params']]"/>
+                <http:header headerName="Authorization" value="#[flowVars.Authorization]"/>
+                <http:header headerName="Host" value="${altruista.host}"/>
+                <http:header headerName="Accept" value="application/json"/>
+                <http:header headerName="Content-Type" value="application/json"/>
+
+            </http:request-builder>
+        </http:request>
+        <logger message="Response message for Authorization: #[payload]" level="INFO" doc:name="Logger"/>
+        <exception-strategy ref="http-request-error-handler" doc:name="Reference Exception Strategy"/>
+
+
+    </flow>
+
+</mule>

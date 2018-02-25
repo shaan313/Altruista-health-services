@@ -1,0 +1,31 @@
+{
+                  "clientPatientId": "string",
+                  "patientName": "string",
+                  "servicePlans": [
+                    {
+                    "serviceId": 0,
+                    "description": "string",
+                    "code": "string",
+                    "memberServicePlanId": 0,
+                    "provider": "string",
+                    "unitType": "string",
+                    "frequency": "string",
+                    "fromDate": "2017-07-25T18:39:15.159Z",
+                    "toDate": "2017-07-25T18:39:15.159Z",
+                    "providerCode": "string",
+                    "providerName": "string",
+                    "lob": "string",
+                    "lobName": "string",
+                    "requestedUnits": 0,
+                    "approvedUnits": 0,
+                    "usedUnits": 0,
+                    "updatedBy": "string",
+                    "createdOn": "2017-07-25T18:39:15.159Z",
+                    "createdBy": "string",
+                    "updatedOn": "2017-07-25T18:39:15.159Z",
+                    "approvedDate": "2017-07-25T18:39:15.159Z",
+                    "serviceGuideLine": "string",
+                    "serviceStatus": "string"
+                      }
+                      ]
+                    }
